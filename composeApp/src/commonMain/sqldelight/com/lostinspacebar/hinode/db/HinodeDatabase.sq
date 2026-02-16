@@ -1,0 +1,98 @@
+-- Messages table
+CREATE TABLE messages (
+    id TEXT NOT NULL PRIMARY KEY,
+    roomId TEXT NOT NULL,
+    senderId TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    deliveryStatus TEXT NOT NULL DEFAULT 'SENT'
+);
+
+CREATE INDEX messages_roomId ON messages(roomId);
+CREATE INDEX messages_timestamp ON messages(timestamp);
+
+-- Rooms table (includes both rooms and spaces)
+CREATE TABLE rooms (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    topic TEXT,
+    avatarUrl TEXT,
+    lastMessage TEXT,
+    unreadCount INTEGER NOT NULL DEFAULT 0,
+    type TEXT NOT NULL DEFAULT 'room',
+    parentSpaceId TEXT
+);
+
+CREATE INDEX rooms_parentSpaceId ON rooms(parentSpaceId);
+CREATE INDEX rooms_type ON rooms(type);
+
+-- Server configuration table
+CREATE TABLE serverConfig (
+    id TEXT NOT NULL PRIMARY KEY,
+    serverUrl TEXT NOT NULL,
+    federationEnabled INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+);
+
+-- Queries for messages
+selectAllMessages:
+SELECT * FROM messages ORDER BY timestamp ASC;
+
+selectMessagesByRoom:
+SELECT * FROM messages WHERE roomId = ? ORDER BY timestamp ASC;
+
+insertMessage:
+INSERT OR REPLACE INTO messages(id, roomId, senderId, content, timestamp, deliveryStatus)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateMessageStatus:
+UPDATE messages SET deliveryStatus = ? WHERE id = ?;
+
+deleteMessage:
+DELETE FROM messages WHERE id = ?;
+
+deleteMessagesByRoom:
+DELETE FROM messages WHERE roomId = ?;
+
+-- Queries for rooms
+selectAllRooms:
+SELECT * FROM rooms ORDER BY name ASC;
+
+selectRoomById:
+SELECT * FROM rooms WHERE id = ?;
+
+selectSpaces:
+SELECT * FROM rooms WHERE type = 'space' ORDER BY name ASC;
+
+selectRoomsBySpace:
+SELECT * FROM rooms WHERE parentSpaceId = ? AND type = 'room' ORDER BY name ASC;
+
+selectRoomsWithoutSpace:
+SELECT * FROM rooms WHERE parentSpaceId IS NULL AND type = 'room' ORDER BY name ASC;
+
+updateRoomParentSpace:
+UPDATE rooms SET parentSpaceId = ? WHERE id = ?;
+
+insertRoom:
+INSERT OR REPLACE INTO rooms(id, name, topic, avatarUrl, lastMessage, unreadCount, type, parentSpaceId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateRoomUnreadCount:
+UPDATE rooms SET unreadCount = ? WHERE id = ?;
+
+updateRoomLastMessage:
+UPDATE rooms SET lastMessage = ? WHERE id = ?;
+
+deleteRoom:
+DELETE FROM rooms WHERE id = ?;
+
+-- Queries for server config
+selectServerConfig:
+SELECT * FROM serverConfig LIMIT 1;
+
+insertServerConfig:
+INSERT OR REPLACE INTO serverConfig(id, serverUrl, federationEnabled, createdAt)
+VALUES (?, ?, ?, ?);
+
+updateFederationEnabled:
+UPDATE serverConfig SET federationEnabled = ? WHERE id = ?;
